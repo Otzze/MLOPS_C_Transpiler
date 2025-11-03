@@ -1,0 +1,23 @@
+float sigmoid(float x)
+{
+    return (exp_approx(x, 10)) / (1 + exp_approx(x, 10));
+}
+
+float linear_regression_prediction(float *features, float *thetas, int n_parameters)
+{
+    float res = thetas[0];
+
+    for (size_t i = 0; i < n_parameters; i++)
+    {
+        res += features[i] * thetas[i+1];
+    }
+
+    return res;
+}
+
+
+float logistic_regression(float *features, float *thetas, int n_parameters)
+{
+    float linear = linear_regression_prediction(features, thetas, n_parameters);
+    return sigmoid(linear);
+}

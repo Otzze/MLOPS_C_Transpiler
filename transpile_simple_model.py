@@ -1,7 +1,8 @@
 import joblib
 
 def read_weights(file_path):
-    return joblib.load(file_path).coef_
+    read_model = joblib.load(file_path)
+    return [read_model.intercept_] + list(read_model.coef_)
 
 def load_fun_from_file(file_path):
     with open(file_path, 'r') as file:
@@ -16,18 +17,30 @@ def to_c_array(arr):
     res += "}"
     return res
 
-def transpile_to_c(model_path, output_path, inputs):
+def transpile_to_c(model_path, output_path, inputs, type="linear"):
     weights = read_weights(model_path)
     weight_array = to_c_array(weights)
     input_array = to_c_array(inputs)
+
+    prediction_fun_file = "predict_function"
+
+    if type == "logistic":
+        prediction_fun_file = "predict_function_logistic"
+
     res = "#include <stdio.h>\n\n"
     res += "#include <stddef.h>\n\n"
-    res += load_fun_from_file('predict_function')
+    res += load_fun_from_file(prediction_fun_file)
     res += "\n\n"
     res += "int main() {\n"
     res += f"    float weights[] = {weight_array};\n"
     res += f"    float inputs[] = {input_array};\n"
-    res += f"    float result = linear_regression_prediction(inputs, weights, {len(inputs)});\n"
+    res += f"    float result = "
+
+    if type == "linear":
+        res += f"linear_regression_prediction(inputs, weights, {len(inputs)});\n"
+    elif type == "logistic":
+        res += f"logistic_regression(inputs, weights, {len(inputs)});\n"
+
     res += "    printf(\"Prediction: %f\\n\", result);\n"
     res += "    return 0;\n"
     res += "}\n"
@@ -35,7 +48,7 @@ def transpile_to_c(model_path, output_path, inputs):
         file.write(res)
 
 OUTPUT_C_FILE = 'transpiled_model.c'
-MODEL_FILE = 'regression.joblib'
+MODEL_FILE = '../regression.joblib'
 inputs = [12, 2, 0]
 
 model = joblib.load(MODEL_FILE)
